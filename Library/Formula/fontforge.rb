@@ -22,6 +22,11 @@ class Fontforge < Formula
   depends_on 'pango' => :optional
   depends_on 'libspiro' => :optional
   depends_on 'fontconfig'
+  
+  if build.head?
+    depends_on 'automake' => :build
+    depends_on 'libtool'  => :build
+  end
 
   fails_with :llvm do
     build 2336
@@ -51,6 +56,12 @@ class Fontforge < Formula
     # Fix linker error; see: http://trac.macports.org/ticket/25012
     ENV.append "LDFLAGS", "-lintl"
 
+    # Add environment variables for system libs if building head
+    if build.head?
+      ENV.append "ZLIB_CFLAGS", "-I/usr/include"
+      ENV.append "ZLIB_LIBS", "-L/usr/lib -lz"
+    end
+
     # Reset ARCHFLAGS to match how we build
     ENV["ARCHFLAGS"] = "-arch #{MacOS.preferred_arch}"
 
@@ -58,6 +69,7 @@ class Fontforge < Formula
     ENV.append "CFLAGS", "-F#{MacOS.sdk_path}/System/Library/Frameworks/CoreServices.framework/Frameworks"
     ENV.append "CFLAGS", "-F#{MacOS.sdk_path}/System/Library/Frameworks/Carbon.framework/Frameworks"
 
+    system "./autogen.sh" if build.head?
     system "./configure", *args
 
     # Fix hard-coded install locations that don't respect the target bindir
@@ -106,8 +118,10 @@ class Fontforge < Formula
     return s
   end
 
-  def patches
-    # Fixes double defined AnchorPoint on Mountain Lion 10.8.2
-    "https://gist.github.com/rubenfonseca/5078149/raw/98a812df4e8c50d5a639877bc2d241e5689f1a14/fontforge"
+  if not build.head?
+    def patches
+      # Fixes double defined AnchorPoint on Mountain Lion 10.8.2
+      "https://gist.github.com/rubenfonseca/5078149/raw/98a812df4e8c50d5a639877bc2d241e5689f1a14/fontforge"
+    end
   end
 end
